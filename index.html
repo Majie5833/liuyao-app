@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>六爻断卦助手</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:#0d1117;color:#e6edf3;min-height:100vh;padding-bottom:70px}
+.hd{background:linear-gradient(135deg,#1a2332,#0d1117);padding:16px;text-align:center;border-bottom:1px solid #21262d;position:sticky;top:0;z-index:10}
+.hd h1{font-size:18px;color:#d4af37}
+.hd p{font-size:11px;color:#8b949e;margin-top:2px}
+.page{display:none;padding:14px}
+.page.on{display:block}
+.card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:14px;margin-bottom:12px}
+.card h3{font-size:14px;color:#d4af37;margin-bottom:10px}
+textarea{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;padding:10px;font-size:14px;min-height:56px;resize:vertical}
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:10px}
+.btn-gold{background:linear-gradient(135deg,#d4af37,#b8860b);color:#0d1117}
+.yao-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed #21262d;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+th,td{border:1px solid #30363d;padding:5px 4px;text-align:center}
+th{background:#1a2332;color:#d4af37}
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;margin:2px}
+.b-j{background:#1a4731;color:#4ade80}.b-x{background:#4a1f1f;color:#f87171}.b-n{background:#3b3b1f;color:#fde047}
+.hint{font-size:11px;color:#8b949e;line-height:1.7}
+.gold{color:#d4af37}
+.rule{padding:8px;border-left:3px solid #d4af37;background:#1a2332;border-radius:0 8px 8px 0;margin:6px 0;font-size:12px;line-height:1.7}
+.coin-area{text-align:center;padding:14px 0}
+.coin{display:inline-block;width:52px;height:52px;line-height:52px;border-radius:50%;background:linear-gradient(145deg,#d4af37,#8b6914);color:#0d1117;font-size:22px;font-weight:bold;margin:0 6px;box-shadow:0 3px 8px rgba(0,0,0,.5)}
+.coin.f{background:linear-gradient(145deg,#555,#333);color:#d4af37}
+.foot{position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:1px solid #21262d;display:flex;z-index:10}
+.foot button{flex:1;padding:10px 0 8px;background:none;border:none;color:#8b949e;font-size:11px;cursor:pointer}
+.foot button.on{color:#d4af37}
+.sel{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.sel span{padding:6px 12px;background:#21262d;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid #30363d}
+.sel span.on{background:#d4af37;color:#0d1117;font-weight:bold}
+</style>
+</head>
+<body>
+<div class="hd"><h1>📿 六爻断卦助手</h1><p>纳甲装卦 · 黄金策/增删卜易/古筮真诠 规则引擎</p></div>
+
+<div class="page on" id="pg0">
+  <div class="card"><h3>① 所问何事（定用神）</h3>
+    <div class="sel" id="cate"></div>
+    <textarea id="q" placeholder="补充具体问题（可选）"></textarea>
+    <p class="hint">用神法则（黄金规则1）：求财→妻财｜求职功名→官鬼｜婚姻→男看财/女看官｜疾病→官鬼为病+世爻｜官司→官鬼｜出行→世爻｜考试文书→父母｜胎产→子孙</p>
+  </div>
+  <div class="card"><h3>② 起卦方式</h3>
+    <div class="sel" id="method"><span class="on" data-m="coin">🪙 摇铜钱（自动）</span><span data-m="manual">✍ 手动录入</span></div>
+    <div id="coinArea" class="coin-area">
+      <div id="coins"><span class="coin">？</span><span class="coin">？</span><span class="coin">？</span></div>
+      <button class="btn btn-gold" onclick="toss()">摇 卦</button>
+      <p class="hint" id="tossInfo">点「摇卦」自动掷六次（字=正面/阳，背=反面/阴）</p>
+    </div>
+    <div id="manualArea" style="display:none">
+      <div id="manualRows"></div>
+      <button class="btn btn-gold" onclick="buildFromManual()">装 卦</button>
+      <p class="hint">○老阳=动(阳变阴)｜—少阳=静阳｜×老阴=动(阴变阳)｜- -少阴=静阴。从初爻填到上爻。</p>
+    </div>
+  </div>
+  <div class="card" id="yaoDisplay" style="display:none"><h3>③ 卦象</h3><div id="yaoList"></div>
+    <button class="btn btn-gold" onclick="install()">纳甲装卦 → 自动断卦</button></div>
+  <div id="installed"></div>
+</div>
+<div class="page" id="pg1"><div id="analysis"><div class="card"><p class="hint">先在「起卦」页装卦，这里自动出断卦分析。</p></div></div></div>
+<div class="page" id="pg2"><div id="rules"></div></div>
+<div class="page" id="pg3"><div id="refs"></div></div>
+
+<div class="foot" id="foot"></div>
+<script>
+/* ================= 基础数据（京房纳甲） ================= */
+const GUA={"乾":{n:1,nei:["子","寅","辰"],wai:["午","申","戌"]},"兑":{n:2,nei:["巳","卯","丑"],wai:["亥","酉","未"]},"离":{n:3,nei:["卯","丑","亥"],wai:["酉","未","巳"]},"震":{n:4,nei:["子","寅","辰"],wai:["午","申","戌"]},"巽":{n:5,nei:["丑","亥","酉"],wai:["未","巳","卯"]},"坎":{n:6,nei:["寅","辰","午"],wai:["申","戌","子"]},"艮":{n:7,nei:["辰","寅","子"],wai:["申","午","辰"]},"坤":{n:8,nei:["未","巳","卯"],wai:["丑","亥","酉"]}};
+const WX_OF=z=>({"子":"水","丑":"土","寅":"木","卯":"木","辰":"土","巳":"火","午":"火","未":"土","申":"金","酉":"金","戌":"土","亥":"水"})[z];
+const G64={"乾乾":"乾为天","兑乾":"泽天夬","离乾":"火天大有","震乾":"雷天大壮","巽乾":"风天小畜","坎乾":"水天需","艮乾":"山天大畜","坤乾":"地天泰","乾兑":"天泽履","兑兑":"兑为泽","离兑":"火泽睽","震兑":"雷泽归妹","巽兑":"风泽中孚","坎兑":"水泽节","艮兑":"山泽损","坤兑":"地泽临","乾离":"天火同人","兑离":"泽火革","离离":"离为火","震离":"雷火丰","巽离":"风火家人","坎离":"水火既济","艮离":"山火贲","坤离":"地火明夷","乾震":"天雷无妄","兑震":"泽雷随","离震":"火雷噬嗑","震震":"震为雷","巽震":"风雷益","坎震":"水雷屯","艮震":"山雷颐","坤震":"地雷复","乾巽":"天风姤","兑巽":"泽风大过","离巽":"火风鼎","震巽":"雷风恒","巽巽":"巽为风","坎巽":"水风井","艮巽":"山风蛊","坤巽":"地风升","乾坎":"天水讼","兑坎":"泽水困","离坎":"火水未济","震坎":"雷水解","巽坎":"风水涣","坎坎":"坎为水","艮坎":"山水蒙","坤坎":"地水师","乾艮":"天山遁","兑艮":"泽山咸","离艮":"火山旅","震艮":"雷山小过","巽艮":"风山渐","坎艮":"水山蹇","艮艮":"艮为山","坤艮":"地山谦","乾坤":"天地否","兑坤":"泽地萃","离坤":"火地晋","震坤":"雷地豫","巽坤":"风地观","坎坤":"水地比","艮坤":"山地剥","坤坤":"坤为地"};
+const GONG={"乾":["乾为天","天风姤","天山遁","天地否","风地观","山地剥","火地晋","火天大有"],"坤":["坤为地","地雷复","地泽临","地天泰","雷天大壮","泽天夬","水天需","水地比"],"震":["震为雷","雷地豫","雷水解","雷风恒","地风升","水风井","泽风大过","泽雷随"],"巽":["巽为风","风天小畜","风火家人","风雷益","天雷无妄","火雷噬嗑","山雷颐","山风蛊"],"坎":["坎为水","水泽节","水雷屯","水火既济","泽火革","雷火丰","地火明夷","地水师"],"离":["离为火","火山旅","火风鼎","火水未济","山水蒙","风水涣","天水讼","天火同人"],"艮":["艮为山","山火贲","山天大畜","山泽损","火泽睽","天泽履","风泽中孚","风山渐"],"兑":["兑为泽","泽水困","泽地萃","泽山咸","水山蹇","地山谦","雷山小过","雷泽归妹"]};
+const GONG_WX={"乾":"金","坤":"土","震":"木","巽":"木","坎":"水","离":"火","艮":"土","兑":"金"};
+const SHI_POS=["上爻","初爻","二爻","三爻","四爻","五爻","四爻","三爻"];
+const POS=["初爻","二爻","三爻","四爻","五爻","上爻"];
+const SHEN6=["青龙","朱雀","勾陈","螣蛇","白虎","玄武"];
+const SHEN_START={"甲":"青龙","乙":"青龙","丙":"朱雀","丁":"朱雀","戊":"勾陈","己":"螣蛇","庚":"白虎","辛":"白虎","壬":"玄武","癸":"玄武"};
+const SHENG={"木":"火","火":"土","土":"金","金":"水","水":"木"};
+const KE={"木":"土","土":"水","水":"火","火":"金","金":"木"};
+const CHONG={"子":"午","午":"子","丑":"未","未":"丑","寅":"申","申":"寅","卯":"酉","酉":"卯","辰":"戌","戌":"辰","巳":"亥","亥":"巳"};
+const HE={"子":"丑","丑":"子","寅":"亥","亥":"寅","卯":"戌","戌":"卯","辰":"酉","酉":"辰","巳":"申","申":"巳","午":"未","未":"午"};
+const WANG_TAB={"寅":{"木":"旺","火":"相","水":"休","金":"囚","土":"死"},"卯":{"木":"旺","火":"相","水":"休","金":"囚","土":"死"},"巳":{"火":"旺","土":"相","木":"休","水":"囚","金":"死"},"午":{"火":"旺","土":"相","木":"休","水":"囚","金":"死"},"申":{"金":"旺","水":"相","土":"休","火":"囚","木":"死"},"酉":{"金":"旺","水":"相","土":"休","火":"囚","木":"死"},"亥":{"水":"旺","木":"相","金":"休","土":"囚","火":"死"},"子":{"水":"旺","木":"相","金":"休","土":"囚","火":"死"},"辰":{"土":"旺","金":"相","火":"休","木":"囚","水":"死"},"戌":{"土":"旺","金":"相","火":"休","木":"囚","水":"死"},"丑":{"土":"旺","金":"相","火":"休","木":"囚","水":"死"},"未":{"土":"旺","金":"相","火":"休","木":"囚","水":"死"}};
+const JIAZI=(()=>{const G="甲乙丙丁戊己庚辛壬癸",Z="子丑寅卯辰巳午未申酉戌亥";const a=[];for(let i=0;i<60;i++)a.push(G[i%10]+Z[i%12]);return a;})();
+const XUNKONG=(()=>{const kong=["戌亥","申酉","午未","辰巳","寅卯","子丑"];const m={};for(let s=0;s<60;s+=10){for(let j=0;j<10;j++)m[JIAZI[s+j]]=kong[s/10];}return m;})();
+function todayGZ(){const days=Math.floor((Date.now()-new Date(1900,0,1).getTime())/86400000);return JIAZI[((days+10)%60+60)%60];}
+
+const CATE={"求财":"妻财","事业求职":"官鬼","婚姻感情":"婚姻","疾病健康":"官鬼","官司纠纷":"官鬼","出行":"世爻","考试文书":"父母","房产土地":"父母","胎产子女":"子孙","寻人寻物":"寻物","竞争比赛":"竞争"};
+let state={yaos:[],cat:"求财",installed:null};
+
+/* ================= UI ================= */
+const PAGES=["起卦","断卦","规则库","关于"];
+const tabs=document.getElementById("tabsEl")||document.createElement("div");
+document.querySelector(".hd").insertAdjacentHTML("afterend",'<div class="sel" style="padding:10px 14px 0" id="tabbar"></div>');
+const tabbar=document.getElementById("tabbar");
+PAGES.forEach((p,i)=>{tabbar.innerHTML+=`<span onclick="go(${i})" class="${i==0?'on':''}" style="flex:1;text-align:center">${["🪙 起卦","🔮 断卦","📜 规则库","📚 关于"][i]}</span>`;});
+function go(i){document.querySelectorAll(".page").forEach((p,k)=>p.classList.toggle("on",k==i));document.querySelectorAll("#tabbar span").forEach((b,k)=>b.classList.toggle("on",k==i));}
+const cateEl=document.getElementById("cate");
+Object.keys(CATE).forEach(k=>{cateEl.innerHTML+=`<span onclick="pickCate(this,'${k}')" class="${k=='求财'?'on':''}">${k}</span>`;});
+function pickCate(el,k){document.querySelectorAll("#cate span").forEach(s=>s.classList.remove("on"));el.classList.add("on");state.cat=k;}
+document.querySelectorAll("#method span").forEach(s=>s.onclick=()=>{document.querySelectorAll("#method span").forEach(x=>x.classList.remove("on"));s.classList.add("on");
+ document.getElementById("coinArea").style.display=s.dataset.m=="coin"?"block":"none";
+ document.getElementById("manualArea").style.display=s.dataset.m=="manual"?"block":"none";});
+const MSEL=["— 少阳(静)","- - 少阴(静)","○ 老阳(动)","× 老阴(动)"];
+(function(){const r=document.getElementById("manualRows");for(let i=0;i<6;i++){r.innerHTML+=`<div class="yao-row"><span style="width:44px;color:#8b949e;font-size:12px">${POS[i]}</span><select id="m${i}" style="flex:1;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:8px">${MSEL.map(x=>`<option>${x}</option>`).join("")}</select></div>`;}})();
+
+/* ================= 起卦 ================= */
+let tossing=false;
+function toss(){if(tossing)return;tossing=true;state.yaos=[];let step=0;
+ const it=setInterval(()=>{const c=[0,1,2].map(()=>Math.random()<0.5);
+  document.getElementById("coins").innerHTML=c.map(x=>`<span class="coin ${x?'':'f'}">${x?'字':'背'}</span>`).join("");
+  const sum=c.filter(x=>x).length*3+(3-c.filter(x=>x).length)*2;
+  state.yaos.push(sum);step++;
+  if(step>=6){clearInterval(it);tossing=false;
+   document.getElementById("tossInfo").textContent="六爻已成："+state.yaos.map(v=>({9:"老阳○",6:"老阴×",8:"少阳—",7:"少阴- -"})[v]).join(" ");
+   showYaos();}
+ },380);}
+function showYaos(){document.getElementById("yaoDisplay").style.display="block";
+ document.getElementById("yaoList").innerHTML=state.yaos.map((v,i)=>{
+  const dyn=v==9||v==6;const yin=v==6||v==7;
+  const bar=yin?"━━&nbsp;&nbsp;━━":"━━━━━━━";const mark=v==9?" ○":v==6?" ×":"";
+  return `<div class="yao-row"><span style="width:44px;color:#8b949e;font-size:12px">${POS[i]}</span><span style="flex:1;font-size:16px;letter-spacing:2px">${bar}${mark}</span>${dyn?'<span class="badge b-n">动</span>':'<span class="badge">静</span>'}</div>`;}).join("");}
+function buildFromManual(){state.yaos=[];for(let i=0;i<6;i++){const v=document.getElementById("m"+i).value;
+ state.yaos.push(v.includes("老阳")?9:v.includes("老阴")?6:v.includes("少阳")?8:7);}showYaos();install();}
+
+/* ================= 装卦 ================= */
+function install(){
+ const toBits=a=>a.map(v=>(v==9||v==8)?1:0); // 阳=1 初->上
+ const bin2gua=bits=>{const n=parseInt(bits.slice().reverse().join(""),2)+1;return Object.keys(GUA).find(g=>GUA[g].n==n);};
+ const upG=bin2gua(toBits(state.yaos.slice(3))),loG=bin2gua(toBits(state.yaos.slice(0,3)));
+ const name=G64[upG+loG];
+ let gong=null,shiIdx=0;for(const g in GONG){GONG[g].forEach((n,i)=>{if(n==name){gong=g;shiIdx=i;}});}
+ const shiPos=SHI_POS[shiIdx];const shiN=POS.indexOf(shiPos);const yingN=(shiN+3)%6;
+ const zhi=[...GUA[loG].nei,...GUA[upG].wai];
+ const wxs=zhi.map(z=>WX_OF(z));
+ const gwx=GONG_WX[gong];
+ const liuqin=wxs.map(w=>w==gwx?"兄弟":SHENG[gwx]==w?"子孙":SHENG[w]==gwx?"父母":KE[w]==gwx?"官鬼":"妻财");
+ const rgz=todayGZ();const si=SHEN6.indexOf(SHEN_START[rgz[0]]);
+ const shen=POS.map((_,i)=>SHEN6[(si+i)%6]);
+ const dynIdx=state.yaos.map((v,i)=>(v==9||v==6)?i:-1).filter(i=>i>=0);
+ const newYaos=state.yaos.map(v=>v==9?7:v==6?8:v);
+ let vName=null,vZhi=null;
+ if(dynIdx.length){const vUpG=bin2gua(toBits(newYaos.slice(3))),vLoG=bin2gua(toBits(newYaos.slice(0,3)));
+  vName=G64[vUpG+vLoG];vZhi=[...GUA[vLoG].nei,...GUA[vUpG].wai];}
+ const kong=XUNKONG[rgz];
+ state.installed={name,gong,shiN,yingN,zhi,wxs,liuqin,shen,rgz,kong,dynIdx,vName,vZhi,upG,loG};
+ const s=state.installed;
+ document.getElementById("installed").innerHTML=`<div class="card"><h3>装卦结果</h3>
+ <p class="gold" style="font-size:15px">${s.name}（${s.gong}宫·${GONG_WX[s.gong]}）</p>
+ ${s.vName?`<p>变卦：<b class="gold">${s.vName}</b></p>`:"<p class='hint'>无动爻，无变卦</p>"}
+ <p class="hint">日辰 ${s.rgz}｜旬空 ${s.kong}｜世爻 ${POS[s.shiN]}｜应爻 ${POS[s.yingN]}</p>
+ <table><tr><th>爻位</th><th>六神</th><th>六亲</th><th>纳支</th><th>动/静</th></tr>
+ ${POS.map((_,i)=>i).reverse().map(i=>`<tr><td>${POS[i]}</td><td>${s.shen[i]}</td><td>${s.liuqin[i]}</td><td>${s.zhi[i]}</td><td>${s.dynIdx.includes(i)?"<b style='color:#f87171'>动</b>":"静"}</td></tr>`).join("")}
+ </table></div>`;
+ go(1);analyze();
+}
+
+/* ================= 断卦引擎 ================= */
+function yongFor(cat){const y=CATE[cat];return y=="婚姻"?"妻财/官鬼(男财女官)":y=="寻物"?"按物之六亲取(钱财物件取妻财)":y=="竞争"?"世应对比+各自用神":y;}
+function analyze(){const s=state.installed;if(!s)return;
+ const yq={"求财":"妻财","事业求职":"官鬼","疾病健康":"官鬼","官司纠纷":"官鬼","考试文书":"父母","房产土地":"父母","胎产子女":"子孙"}[state.cat];
+ const el=document.getElementById("analysis");let h="";
+ h+=`<div class="card"><h3>① 用神定位</h3><p>所问：<b class="gold">${state.cat}</b> → 用神：<b class="gold">${yongFor(state.cat)}</b></p>`;
+ let yIdx=yq?s.liuqin.map((q,i)=>q==yq?i:-1).filter(i=>i>=0):[];
+ if(yIdx.length){yIdx.forEach(i=>{h+=`<p>用神临 ${POS[i]}（${s.liuqin[i]}·${s.zhi[i]}）${i==s.shiN?"<span class='badge b-j'>持世</span>":""}${i==s.yingN?"<span class='badge'>临应</span>":""}${s.dynIdx.includes(i)?"<span class='badge b-n'>发动</span>":""}</p>`;});
+  if(yIdx.length>1)h+=`<p class="hint">⚠ 用神多现：依《古筮真诠》第11章，舍闲爻取有异者（发动/持世者优先），不按旺衰预选。</p>`;}
+ else h+=`<p><span class="badge b-x">用神不上卦</span></p><p class="hint">依《增删卜易》飞伏章：先看日月是否可代用神，否则于 ${s.gong} 宫首卦寻伏神，得日月动爻生扶方可用；飞神克伏则有用亦无用。</p>`;
+ h+="</div>";
+ if(yIdx.length){const i=yIdx[0];const dz=s.rgz[1];const dw=WX_OF(dz);const yw=s.wxs[i];
+  let dRel=dw==yw?"日比扶(旺)":SHENG[dw]==yw?"日生扶(旺)":KE[dw]==yw?"日克(衰)":CHONG[dz]==s.zhi[i]?"日冲！":"日平";
+  h+=`<div class="card"><h3>② 旺衰判断</h3><p>用神 ${s.zhi[i]}（${yw}）对日辰 ${s.rgz}：<b class="gold">${dRel}</b></p>`;
+  if(CHONG[dz]==s.zhi[i])h+=`<p class="hint">《古筮真诠》第22章：旺相静爻受日冲=暗动（事在即发）；休囚受冲=日破（无用，出月填实方救）。请核对占卦当月月建定旺衰。</p>`;
+  h+=`<p class="hint">月建（万卜之提纲）请按占月核对：月临/月合=高层次旺，月生/月扶=一般旺；月冲=月破，月克=休囚。</p></div>`;}
+ h+=`<div class="card"><h3>③ 动爻与变爻（吉凶之机）</h3>`;
+ if(!s.dynIdx.length)h+=`<p class="hint">无动爻（静卦）。《古筮真诠》第23章：自占自事，<b>用神持世直接断吉，忌神持世直接断凶</b>，不必再看旺衰；次查暗动。</p>`;
+ s.dynIdx.forEach(i=>{const vZ=s.vZhi[i];const vWx=WX_OF(vZ);const nWx=s.wxs[i];
+  let rt=vWx==nWx?"比和":SHENG[vWx]==nWx?"回头生（吉）":KE[vWx]==nWx?"回头克（凶·无用动爻）":SHENG[nWx]==vWx?"回头泄（化退化衰）":"化出克泄";
+  h+=`<p>${POS[i]} ${s.liuqin[i]}·${s.zhi[i]} 动 → ${vZ}：<b class="${rt.includes('吉')?'gold':''}">${rt}</b></p>`;});
+ if(s.dynIdx.length)h+=`<p class="hint">铁律（《古筮真诠》第13章）：变爻只能回头作用本位爻，不得跨越生克他爻。回头克/化退/化破之动爻=<b>无用动爻</b>，动了等于没动，剔除后再断（第16章）。</p>`;
+ h+="</div>";
+ h+=`<div class="card"><h3>④ 旬空·冲合</h3>`;
+ const kA=s.kong.replace("戌亥","戌,亥").replace("申酉","申,酉").replace("午未","午,未").replace("辰巳","辰,巳").replace("寅卯","寅,卯").replace("子丑","子,丑").split(",");
+ let msgs=[];
+ if(yIdx.length){const i=yIdx[0];
+  if(kA.includes(s.zhi[i])){msgs.push("<span class='badge b-n'>用神旬空</span>");msgs.push("<span class='hint'>真高空废勿用；动空/旺空为假空，待出空填实之日应吉凶。日辰冲空即起。</span>");}
+  if(CHONG[s.zhi[i]]==s.rgz[1])msgs.push("<span class='badge b-n'>用神被日辰冲</span>");
+  if(HE[s.zhi[i]]==s.rgz[1])msgs.push("<span class='badge b-j'>用神得日辰合</span>");}
+ s.dynIdx.forEach(j=>{if(kA.includes(s.zhi[j]))msgs.push(`<span class='badge'>${POS[j]}动爻旬空（动不为空，待填实）</span>`);});
+ h+=(msgs.length?msgs.join("<br>"):"<p class='hint'>用神不逢空、不逢冲合。旬空 "+s.kong+"。</p>")+"</div>";
+ h+=`<div class="card"><h3>⑤ 综合提示</h3>`;
+ const tips=[];
+ if(yIdx&&yIdx.includes(s.shiN))tips.push("✅ 用神持世：所求与我身相合，吉象基础。");
+ const jiMap={"妻财":"兄弟","官鬼":"子孙","父母":"妻财","子孙":"父母","兄弟":"官鬼"};
+ if(yq&&s.liuqin[s.shiN]==jiMap[yq])tips.push("⚠ 忌神持世"+(s.dynIdx.includes(s.shiN)?"且发动":"")+"——主事多阻，宜守不宜进。");
+ s.dynIdx.forEach(j=>{
+  if(s.liuqin[j]=="子孙")tips.push("ℹ 子孙发动：为解忧喜神，占病占平安皆吉（《增删卜易》赛锦囊秘法）。");
+  if(s.liuqin[j]=="官鬼"&&state.cat!="事业求职"&&state.cat!="官司纠纷")tips.push("⚠ 官鬼发动：占病为病症、占常事为忧疑口舌。");
+  if(s.liuqin[j]=="父母")tips.push("ℹ 父母发动：主文书辛苦劳累，占财则克妻财有阻。");});
+ h+=(tips.length?tips.map(t=>`<p style="margin:4px 0">${t}</p>`).join(""):"");
+ h+=`<p class="hint"><b class="gold">应期速查</b>（黄金规则6）：静爻应期逢值逢冲｜动爻逢合逢值｜月破应填实补破出月｜旬空应出空冲空填实｜入三墓喜冲开｜六合宜相击。远事应年月，近事应日时。筛选：应众不应寡、应早不应迟、应邻不应单。</p>
+ <p class="hint"><b class="gold">断卦七步</b>（古筮真诠第8章）：对轨核过去 → 定用神 → 吉凶定性（动变组合为主，日月为辅） → 推应期 → 细节取象 → 趋吉避凶建议 → 事后复盘。心不诚不占，一事不连占，恍惚之卦次日再占。</p></div>`;
+ el.innerHTML=h;
+}
+
+/* ================= 规则库 / 关于 ================= */
+document.getElementById("rules").innerHTML=`
+<div class="card"><h3>黄金十条（七部古籍合参）</h3>
+<div class="rule"><b>1. 先定用神再论生克</b>：占自身以世为用，占他人以应为用；占夫用官、占妻用财、求财看妻财、考试文书看父母。（卜筮正宗/增删卜易）</div>
+<div class="rule"><b>2. 日辰为六爻之主宰，月建乃万卜之提纲</b>：日冲旺相静爻=暗动得力，冲衰弱静爻=日破无用；冲空即起、冲合即开。（增删卜易/卜筮正宗）</div>
+<div class="rule"><b>3. 神兆机于动</b>：吉凶之机在动爻变爻；动则月破出月不破、旬空动不为空；回头生克是断成败最重要指针。（增删卜易/易林补遗）</div>
+<div class="rule"><b>4. 忌神动克用神先查元神</b>：元神同动则忌神贪生忘克，用神根蒂愈固。（卜筮正宗）</div>
+<div class="rule"><b>5. 空破辨真假有救应</b>：动而空破应期取填实冲实之日；静而无扶方作全废。（易冒/增删卜易）</div>
+<div class="rule"><b>6. 应期总诀——值合冲实库</b>：静逢值冲，动逢合值；太旺逢墓冲，衰绝遇生旺；入墓喜冲开，六合宜相击；远应年月，近应日时。（增删卜易）</div>
+<div class="rule"><b>7. 用神不上卦</b>：日月代之、本宫伏之；伏神得生扶可用，飞神克伏则无用。（增删卜易/卜筮正宗）</div>
+<div class="rule"><b>8. 防灾看子孙，谋名看官鬼，求脱看空亡</b>：子孙持世安如泰山；占官最忌子孙发动。（增删卜易/易冒）</div>
+<div class="rule"><b>9. 三合局须三支齐备虚一待用</b>：局生世吉、局克世凶。（增删卜易）</div>
+<div class="rule"><b>10. 不诚不占、一事不连占</b>；不泥神煞卦名，唯生克制化、空破刑冲动静是正途。（卜筮正宗/易隐）</div></div>
+<div class="card"><h3>古筮真诠·补充规则</h3>
+<div class="rule">• <b>断卦分层</b>：吉凶判断与应期细节两套理论不可混用。吉凶只认日月+动变组合对世用之作用。</div>
+<div class="rule">• <b>静卦速断</b>：自占用神持世直接断吉、忌神持世直接断凶，不必再看旺衰。</div>
+<div class="rule">• <b>心态卦</b>（忧患/犹豫/疑惑之占）：只看子孙（喜神）与官鬼（忧神）旺衰对比。</div>
+<div class="rule">• <b>无用动爻五种</b>：回头克/化退神/化月破/化日破/动而旬空无生克实——直接剔除再断。</div>
+<div class="rule">• <b>对轨验证</b>：断卦先从卦中读过去现状与事实核对，卦真才可断未来。</div></div>
+<div class="card"><h3>分类占断用神速查（黄金策）</h3>
+<table><tr><th>占类</th><th>用神</th></tr>
+<tr><td>求财买卖</td><td>妻财（财运看财爻旺衰+福神子孙生扶）</td></tr>
+<tr><td>求官功名</td><td>官鬼（最忌子孙发动）</td></tr>
+<tr><td>婚姻</td><td>男占看妻财、女占看官鬼</td></tr>
+<tr><td>疾病</td><td>自病看世爻、官鬼为病症、服药看子孙</td></tr>
+<tr><td>官司</td><td>官鬼为主、世应看胜负</td></tr>
+<tr><td>出行</td><td>世爻（世空不吉、六冲主快）</td></tr>
+<tr><td>行人</td><td>用神静而逢冲则归</td></tr>
+<tr><td>胎产</td><td>子孙（阳动生男、阴动生女之古法）</td></tr>
+<tr><td>考试文书</td><td>父母（官鬼为名次元神）</td></tr>
+<tr><td>失物</td><td>妻财（财爻安静不被克可寻）</td></tr></table></div>`;
+document.getElementById("refs").innerHTML=`
+<div class="card"><h3>规则来源（5 部拆书稿）</h3>
+<p class="hint">①《黄金策》（明·托名刘伯温）——分类占断源头<br>②《增删卜易》（野鹤老人）——实战派第一经典<br>③《卜筮正宗》《易冒》《易隐》等七部合集——规范化集大成<br>④《古筮真诠》（朱辰彬）——现代系统化教材（断卦分层理论）<br>⑤《细说六爻预测学》（王虎应）——新派视角</p></div>
+<div class="card"><h3>使用说明</h3>
+<p class="hint">1. 心存所问，点「摇卦」自动掷六次铜钱装卦<br>2. 也可手动录入已知卦象<br>3. App 自动完成：定用神→旺衰→动变→旬空→综合提示→应期速查<br>4. 月建旺衰请按实际占月自行核对（App 默认只计算日辰）<br>5. 本工具是「规则提示器」——最终判断需人来综合，这正是六爻"知变通不拘泥"之本意</p></div>
+<div class="card"><h3>免责声明</h3><p class="hint">六爻基于京房纳甲传统体系，仅供文化学习与自我探索参考，不构成任何专业建议。重大决策请基于理性判断。</p></div>`;
+</script>
+</body>
+</html>
